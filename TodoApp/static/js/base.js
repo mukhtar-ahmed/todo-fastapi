@@ -1,4 +1,4 @@
-    alert('hello');
+
     // Add Todo JS
     const todoForm = document.getElementById('todoForm');
     if (todoForm) {

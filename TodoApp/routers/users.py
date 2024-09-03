@@ -23,26 +23,17 @@ db_dependency = Annotated[Session , Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 bcrypt_context = CryptContext(schemes=['bcrypt'],deprecated='auto')
 
+### Pydantics Base Model ###
 class UserVarification(BaseModel):
     current_password : str
     new_password: str = Field(min_length=6)
 
+### End Points ###
 @router.get('/',status_code=status.HTTP_200_OK)
 async def user(user:user_dependency ,db: db_dependency):
     if user is None:
         raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
     return db.query(Users).filter(Users.id == user.get("id")).first()
-
-# @router.get('/user', status_code=status.HTTP_200_OK)
-# async def user(user: user_dependency, db: db_dependency):
-#     if user is None:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
-#     user_record = db.query(Users).filter(Users.id == user.get("id")).first()
-#     if user_record is None:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
-#     return user_record
-
-    
 
 @router.put("/password",status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(user:user_dependency , db:db_dependency ,user_varification: UserVarification):

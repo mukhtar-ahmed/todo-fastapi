@@ -16,9 +16,20 @@ router = APIRouter(
     tags=['auth']
 )
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 bcrypt_context = CryptContext(schemes=['bcrypt'],deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
+db_dependency = Annotated[Session , Depends(get_db)]
+SECRET_KEY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+ALGORITHM = 'HS256'
 
+### Pydantics Base Model ###
 class CreateUserRequest(BaseModel):
     email:str
     username:str
@@ -32,20 +43,7 @@ class Token(BaseModel):
     access_token :str
     token_type:str
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-db_dependency = Annotated[Session , Depends(get_db)]
-
-
-SECRET_KEY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-ALGORITHM = 'HS256'
-
-
+### Pages ###
 @router.get('/login-page')
 def render_login_page(request:Request):
     return template.TemplateResponse('login.html',{"request":request})
@@ -54,7 +52,7 @@ def render_login_page(request:Request):
 def render_register_page(request:Request):
     return template.TemplateResponse('register.html',{"request":request})
 
-
+### Function For End Points ###
 def authenticate_user(username:str,password:str,db):
     user = db.query(Users).filter(Users.username == username).first()
     if user is None:
@@ -81,7 +79,7 @@ async def get_current_user(token:Annotated[str, Depends(oauth2_bearer)]):
     except JWTError:
         raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
 
-
+### End Points ###
 @router.post("/", status_code= status.HTTP_201_CREATED)
 async def create_user(db:db_dependency, create_user_request: CreateUserRequest):
     create_user_model = Users(
@@ -94,9 +92,6 @@ async def create_user(db:db_dependency, create_user_request: CreateUserRequest):
         is_active = True,
         phone_number = create_user_request.phone_number
     )
-    print("----------------------------")
-    print(create_user_model)
-    print("----------------------------")
     db.add(create_user_model)
     db.commit()
 
